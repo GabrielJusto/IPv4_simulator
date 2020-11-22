@@ -169,8 +169,6 @@ def arp_reply(nodes_receving, src, dest_ip, fin_dest):
 
     #check if a node is the destination
     for n in nodes_receving:
-        aux = n.ip.split('/')[0]
-        print(f'{aux} == {dest_ip}:')
         if n.ip.split('/')[0] == dest_ip:
             print(f"{n.name} => {src.name} : ETH (src={n.mac} dst={src.mac}) \\n ARP - {n.ip.split('/')[0]} is at {n.mac};")
             return n
@@ -185,6 +183,8 @@ def arp_reply(nodes_receving, src, dest_ip, fin_dest):
 def send_message(message, node_src, node_dest, ttl):
     ip_src = node_src.ip.split('/')[0]
     ip_dest = node_dest.ip.split('/')[0]
+    if ttl <= 0:
+        print(f'{node_src.name} => {node_dest.name} : ETH (src={node_src.mac} dst=:{node_dest.mac} \\n IP (src={ip_src} dst={ip_dest} ttl={ttl} mf={node_dest.mtu} off=0) \n ICMP - Time Exceeded;')
     print(f'{node_src.name} => {node_dest.name} : ETH (src={node_src.mac} dst=:{node_dest.mac} \\n IP (src={ip_src} dst={ip_dest} ttl={ttl} mf={node_dest.mtu} off=0) \n ICMP - Echo request (data={message});')
  
 
@@ -248,7 +248,7 @@ def main():
         mtu = int(current_node.mtu)
         if len(message) > mtu:
             message_list = []
-            slices = (len(message)//mtu) + 1
+            slices = (len(message)//mtu)
             for i in range(slices):
                 if i == slices:
                     message_list.append(message[i*mtu:])
@@ -260,7 +260,9 @@ def main():
         for m in message_list:
             send_message(m, node_src, current_node, ttl)
 
-        if(current_node.node):
+       
+
+        if current_node.node:
             if end:
                 print(f'{node_dest.name} rbox {node_dest.name} : Received {message};')
         
@@ -282,8 +284,17 @@ def main():
  
 
         index = ip_dest.split(':')[1]
-        
+        ip_dest = ip_dest.split(':')[0]
+        r_lst = []
 
+        # for n in nodes:
+        #     print(f'name: {n.name}, ip: {n.ip}')
+        #     if ip_dest in n.ip:
+        #         r_lst.append(n)
+       
+       #aqui eu tenho i
+
+    
  
     
         current_node = get_node_by_ip(nodes,routers[r_id].gates[int(index)].ip)
@@ -297,9 +308,20 @@ def main():
     ttl = 8
     path.reverse()
     for n_s, n_d in zip(path, path[1:]):
-        send_message(message, n_s, n_d, ttl)
+        message_list = [message]
+        mtu = int(n_s.mtu)
+        if len(message) > mtu:
+            message_list = []
+            slices = (len(message)//mtu)
+            for i in range(slices):
+                if i == slices:
+                    message_list.append(message[i*mtu:])
+                else:
+                    message_list.append(message[i*mtu:i*mtu+mtu])
+        for m in message_list:
+            send_message(m, n_s, n_d, ttl)
         ttl -= 1
-
+    
     print(f'{path[-1].name} rbox {path[-1].name} : Received {message};')
 
         
